@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"pgsac/pkg/schema"
+	"github.com/ofux/pgsac/pkg/schema"
 )
 
 // Exporter handles the export of schema objects to files

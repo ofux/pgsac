@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"pgsac/pkg/database"
-	"pgsac/pkg/exporter"
-	"pgsac/pkg/schema"
+	"github.com/ofux/pgsac/pkg/database"
+	"github.com/ofux/pgsac/pkg/exporter"
+	"github.com/ofux/pgsac/pkg/schema"
 
 	"github.com/spf13/cobra"
 )

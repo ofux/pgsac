@@ -1,4 +1,4 @@
-module pgsac
+module github.com/ofux/pgsac
 
 go 1.23.6
 
