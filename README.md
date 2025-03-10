@@ -15,7 +15,7 @@ A CLI tool to extract and manage PostgreSQL database schemas as code.
 ## Installation
 
 ```bash
-go install github.com/yourusername/pgsac/cmd/pgsac@latest
+go install github.com/ofux/pgsac/cmd/pgsac@latest
 ```
 
 ## Usage
