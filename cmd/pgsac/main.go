@@ -52,7 +52,7 @@ organized by schema and object type.`,
 		defer db.Close()
 
 		// Extract schemas
-		extractor := schema.NewExtractor(db)
+		extractor := schema.NewExtractor(db, config)
 		extractedSchemas, err := extractor.ExtractSchemas(schemas)
 		if err != nil {
 			return fmt.Errorf("error extracting schemas: %w", err)
