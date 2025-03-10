@@ -93,8 +93,8 @@ func (e *Extractor) ExtractSchemas(schemaNames []string) ([]Schema, error) {
 }
 
 func (e *Extractor) extractTables(schemaName string) ([]Object, error) {
-	// First, get the list of tables
-	listCmd := fmt.Sprintf(`\dt %s.*`, schemaName)
+	// First, get the list of tables, excluding system tables
+	listCmd := fmt.Sprintf(`\dt+ %s.*`, schemaName)
 	tableList, err := e.execPsql(listCmd)
 	if err != nil {
 		return nil, fmt.Errorf("error listing tables: %w", err)
@@ -111,6 +111,12 @@ func (e *Extractor) extractTables(schemaName string) ([]Object, error) {
 		if len(fields) < 4 {
 			continue
 		}
+
+		// Skip if this is a system table
+		if strings.Contains(line, "pg_catalog") || strings.Contains(line, "information_schema") {
+			continue
+		}
+
 		tableName := fields[2]
 
 		// Get the table definition
@@ -133,8 +139,8 @@ func (e *Extractor) extractTables(schemaName string) ([]Object, error) {
 }
 
 func (e *Extractor) extractViews(schemaName string) ([]Object, error) {
-	// List views
-	listCmd := fmt.Sprintf(`\dv %s.*`, schemaName)
+	// List views, excluding system views
+	listCmd := fmt.Sprintf(`\dv+ %s.*`, schemaName)
 	viewList, err := e.execPsql(listCmd)
 	if err != nil {
 		return nil, fmt.Errorf("error listing views: %w", err)
@@ -151,6 +157,12 @@ func (e *Extractor) extractViews(schemaName string) ([]Object, error) {
 		if len(fields) < 4 {
 			continue
 		}
+
+		// Skip if this is a system view
+		if strings.Contains(line, "pg_catalog") || strings.Contains(line, "information_schema") {
+			continue
+		}
+
 		viewName := fields[2]
 
 		// Get the view definition
@@ -173,8 +185,8 @@ func (e *Extractor) extractViews(schemaName string) ([]Object, error) {
 }
 
 func (e *Extractor) extractMaterializedViews(schemaName string) ([]Object, error) {
-	// List materialized views
-	listCmd := fmt.Sprintf(`\dm %s.*`, schemaName)
+	// List materialized views, excluding system ones
+	listCmd := fmt.Sprintf(`\dm+ %s.*`, schemaName)
 	matViewList, err := e.execPsql(listCmd)
 	if err != nil {
 		return nil, fmt.Errorf("error listing materialized views: %w", err)
@@ -191,6 +203,12 @@ func (e *Extractor) extractMaterializedViews(schemaName string) ([]Object, error
 		if len(fields) < 4 {
 			continue
 		}
+
+		// Skip if this is a system materialized view
+		if strings.Contains(line, "pg_catalog") || strings.Contains(line, "information_schema") {
+			continue
+		}
+
 		matViewName := fields[2]
 
 		// Get the materialized view definition
@@ -213,8 +231,8 @@ func (e *Extractor) extractMaterializedViews(schemaName string) ([]Object, error
 }
 
 func (e *Extractor) extractFunctions(schemaName string) ([]Object, error) {
-	// List functions
-	listCmd := fmt.Sprintf(`\df %s.*`, schemaName)
+	// List functions, excluding system functions
+	listCmd := fmt.Sprintf(`\df+ %s.*`, schemaName)
 	funcList, err := e.execPsql(listCmd)
 	fmt.Println(funcList)
 	if err != nil {
@@ -232,6 +250,12 @@ func (e *Extractor) extractFunctions(schemaName string) ([]Object, error) {
 		if len(fields) < 4 {
 			continue
 		}
+
+		// Skip if this is a system function (usually in pg_catalog or information_schema)
+		if strings.Contains(line, "pg_catalog") || strings.Contains(line, "information_schema") {
+			continue
+		}
+
 		funcName := fields[2]
 
 		// Get the function definition
