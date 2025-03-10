@@ -234,7 +234,23 @@ func (e *Extractor) extractMaterializedViews(schemaName string) ([]Object, error
 }
 
 func (e *Extractor) extractFunctions(schemaName string) ([]Object, error) {
-	// List functions, excluding system functions
+	// First get regular functions
+	functions, err := e.extractRegularFunctions(schemaName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Then get aggregate functions
+	aggregates, err := e.extractAggregateFunctions(schemaName)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(functions, aggregates...), nil
+}
+
+func (e *Extractor) extractRegularFunctions(schemaName string) ([]Object, error) {
+	// List functions, excluding system functions and aggregates
 	listCmd := fmt.Sprintf(`\df+ %s.*`, schemaName)
 	funcList, err := e.execPsql(listCmd)
 	if err != nil {
@@ -256,9 +272,10 @@ func (e *Extractor) extractFunctions(schemaName string) ([]Object, error) {
 		schema := strings.TrimSpace(fields[0])
 		funcName := strings.TrimSpace(fields[1])
 		argTypes := strings.TrimSpace(fields[3]) // Column 4 contains argument types
+		kind := strings.TrimSpace(fields[4])     // Column 5 contains the kind (func/agg/etc)
 
-		// Skip if this is a system function (usually in pg_catalog or information_schema)
-		if schema == "pg_catalog" || schema == "information_schema" {
+		// Skip if this is a system function or an aggregate
+		if schema == "pg_catalog" || schema == "information_schema" || kind != "func" {
 			continue
 		}
 
@@ -280,4 +297,73 @@ func (e *Extractor) extractFunctions(schemaName string) ([]Object, error) {
 	}
 
 	return objects, nil
+}
+
+func (e *Extractor) extractAggregateFunctions(schemaName string) ([]Object, error) {
+	// List aggregate functions
+	listCmd := fmt.Sprintf(`\da+ %s.*`, schemaName)
+	funcList, err := e.execPsql(listCmd)
+	if err != nil {
+		return nil, fmt.Errorf("error listing aggregate functions: %w", err)
+	}
+
+	var objects []Object
+	for _, line := range strings.Split(strings.TrimSpace(funcList), "\n") {
+		if line == "" {
+			continue
+		}
+
+		// Parse the aggregate function name from the output (pipe separated)
+		fields := strings.Split(line, "|")
+		if len(fields) < 4 { // \da+ output has at least 4 fields
+			continue
+		}
+
+		schema := strings.TrimSpace(fields[0])
+		funcName := strings.TrimSpace(fields[1])
+		argTypes := strings.TrimSpace(fields[2]) // Column 3 contains argument types
+
+		// Skip if this is a system aggregate
+		if schema == "pg_catalog" || schema == "information_schema" {
+			continue
+		}
+
+		// For aggregates, we need to get the definition using a SQL query
+		defCmd := fmt.Sprintf(`SELECT pg_get_functiondef(p.oid)
+			FROM pg_proc p
+			JOIN pg_namespace n ON p.pronamespace = n.oid
+			WHERE n.nspname = '%s'
+			AND p.proname = '%s'
+			AND p.proargtypes::regtype[] = ARRAY[%s]::regtype[]`,
+			schemaName, funcName, e.formatArgTypesForSQL(argTypes))
+
+		definition, err := e.execPsql(defCmd)
+		if err != nil {
+			return nil, fmt.Errorf("error getting aggregate function definition for %s(%s): %w", funcName, argTypes, err)
+		}
+
+		obj := Object{
+			Schema:     schemaName,
+			Name:       funcName,
+			Type:       FunctionType,
+			Definition: definition,
+		}
+		objects = append(objects, obj)
+	}
+
+	return objects, nil
+}
+
+// formatArgTypesForSQL formats argument types for use in a SQL query
+// Example: "text, integer" becomes "'text', 'integer'"
+func (e *Extractor) formatArgTypesForSQL(argTypes string) string {
+	if argTypes == "" {
+		return ""
+	}
+
+	types := strings.Split(argTypes, ",")
+	for i, t := range types {
+		types[i] = fmt.Sprintf("'%s'", strings.TrimSpace(t))
+	}
+	return strings.Join(types, ",")
 }
