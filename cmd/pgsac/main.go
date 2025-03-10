@@ -31,6 +31,7 @@ organized by schema and object type.`,
 		dbname, _ := cmd.Flags().GetString("dbname")
 		user, _ := cmd.Flags().GetString("user")
 		password, _ := cmd.Flags().GetString("password")
+		sslmode, _ := cmd.Flags().GetString("sslmode")
 		output, _ := cmd.Flags().GetString("output")
 		schemas, _ := cmd.Flags().GetStringSlice("schemas")
 
@@ -41,6 +42,7 @@ organized by schema and object type.`,
 			DBName:   dbname,
 			User:     user,
 			Password: password,
+			SSLMode:  sslmode,
 		}
 
 		db, err := database.Connect(config)
@@ -74,6 +76,7 @@ func init() {
 	extractCmd.Flags().StringP("dbname", "d", "", "Database name")
 	extractCmd.Flags().StringP("user", "u", "", "Database user")
 	extractCmd.Flags().StringP("password", "P", "", "Database password")
+	extractCmd.Flags().String("sslmode", "disable", "SSL mode (disable, require, verify-ca, verify-full)")
 	extractCmd.Flags().StringP("output", "o", "./schemas", "Output directory for SQL files")
 	extractCmd.Flags().StringSliceP("schemas", "s", []string{"public"}, "Schemas to extract (comma-separated)")
 
