@@ -255,6 +255,7 @@ func (e *Extractor) extractFunctions(schemaName string) ([]Object, error) {
 
 		schema := strings.TrimSpace(fields[0])
 		funcName := strings.TrimSpace(fields[1])
+		argTypes := strings.TrimSpace(fields[3]) // Column 4 contains argument types
 
 		// Skip if this is a system function (usually in pg_catalog or information_schema)
 		if schema == "pg_catalog" || schema == "information_schema" {
@@ -262,10 +263,11 @@ func (e *Extractor) extractFunctions(schemaName string) ([]Object, error) {
 		}
 
 		// Get the function definition
-		defCmd := fmt.Sprintf(`\sf %s.%s`, schemaName, funcName)
+		// Include argument types to handle overloaded functions
+		defCmd := fmt.Sprintf(`\sf %s.%s(%s)`, schemaName, funcName, argTypes)
 		definition, err := e.execPsql(defCmd)
 		if err != nil {
-			return nil, fmt.Errorf("error getting function definition for %s: %w", funcName, err)
+			return nil, fmt.Errorf("error getting function definition for %s(%s): %w", funcName, argTypes, err)
 		}
 
 		obj := Object{
