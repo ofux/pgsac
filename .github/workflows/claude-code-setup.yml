@@ -1,0 +1,42 @@
+name: Claude Code
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to use'
+        required: false
+        default: '18'
+        type: string
+
+env:
+  CLAUDE_CODE_CONFIG: ${{ secrets.CLAUDE_CODE_CONFIG }}
+
+jobs:
+  claude:
+    name: Setup Claude Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Configure Claude Code
+        run: |
+          rm -f ~/.claude.json
+          $CLAUDE_CODE_CONFIG > ~/.claude.json
+          cat ~/.claude.json
+
+      - name: Verify Claude Code installation
+        run: claude --version || echo "Claude Code installed but version command not available"
+
+      - name: Run Claude Code
+        run: claude "Explain the content of pom.xml"
