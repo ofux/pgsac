@@ -1,7 +1,7 @@
 name: Claude Code
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       node-version:
         description: 'Node.js version to use'
